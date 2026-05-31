@@ -1,0 +1,88 @@
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from collections.abc import Sequence
+from dataclasses import asdict
+from pathlib import Path
+
+from maintainer_health.audit import AuditResult, audit_repository
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        prog="maintainer-health",
+        description="Audit a local open-source repository for maintenance health.",
+    )
+    parser.add_argument(
+        "path",
+        nargs="?",
+        default=".",
+        help="Repository path to audit. Defaults to the current directory.",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print machine-readable JSON.",
+    )
+    parser.add_argument(
+        "--fail-under",
+        type=int,
+        default=None,
+        metavar="PERCENT",
+        help="Exit with status 2 if the score percentage is below this threshold.",
+    )
+
+    args = parser.parse_args(argv)
+
+    try:
+        result = audit_repository(args.path)
+    except (FileNotFoundError, NotADirectoryError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+    if args.json:
+        print(_to_json(result))
+    else:
+        print(_to_text(result))
+
+    if args.fail_under is not None and result.percentage < args.fail_under:
+        return 2
+    return 0
+
+
+def _to_json(result: AuditResult) -> str:
+    payload = asdict(result)
+    payload["path"] = str(result.path)
+    payload["grade"] = result.grade
+    payload["percentage"] = result.percentage
+    return json.dumps(payload, indent=2, sort_keys=True)
+
+
+def _to_text(result: AuditResult) -> str:
+    lines = [
+        f"Repository: {Path(result.path)}",
+        (
+            f"Score: {result.score}/{result.max_score} "
+            f"({result.percentage}%) - Grade {result.grade}"
+        ),
+        "",
+        "Checks:",
+    ]
+
+    for check in result.checks:
+        mark = "PASS" if check.passed else "FAIL"
+        lines.append(f"  [{mark}] {check.title} ({check.weight} pts)")
+        lines.append(f"        {check.detail}")
+        if not check.passed:
+            lines.append(f"        Next: {check.recommendation}")
+
+    if result.failed_checks:
+        lines.extend(["", "Top next steps:"])
+        for check in result.failed_checks[:5]:
+            lines.append(f"  - {check.recommendation}")
+    else:
+        lines.extend(["", "No missing maintenance basics found."])
+
+    return "\n".join(lines)
