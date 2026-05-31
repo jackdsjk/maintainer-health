@@ -5,3 +5,4 @@
 - Initial offline repository maintenance audit.
 - Added text and JSON output.
 - Added CI threshold support with `--fail-under`.
+- Added project documentation, contribution guidance, and CI workflow.
