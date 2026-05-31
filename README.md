@@ -64,10 +64,13 @@ python -m maintainer_health . --json
 
 ## Roadmap
 
-- Add language-specific checks for Python, JavaScript, Rust, and Go.
-- Add optional GitHub API enrichment for stars, open issues, stale PRs, and releases.
-- Add `--fix-plan` output that creates a prioritized maintenance task list.
-- Add SARIF or Markdown report output for CI comments.
+See [docs/roadmap.md](docs/roadmap.md) for planned maintenance work.
+
+Near-term focus:
+
+- Language-specific checks for Python, JavaScript, Rust, and Go.
+- `--fix-plan` output that creates a prioritized maintenance task list.
+- Markdown report output for CI comments and issue bodies.
 
 ## License
 

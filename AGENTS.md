@@ -11,6 +11,7 @@ This repository contains a Python CLI that audits open-source repository mainten
 ## Validation
 
 - Run `python -m pytest` for tests.
+- Run `python -m ruff check .` for lint.
 - Run `python -m maintainer_health --help` for the CLI smoke check.
 - Run `python -m maintainer_health . --json` to verify the local audit output.
 
