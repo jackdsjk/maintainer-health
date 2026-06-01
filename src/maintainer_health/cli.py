@@ -21,10 +21,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=".",
         help="Repository path to audit. Defaults to the current directory.",
     )
-    parser.add_argument(
+    output_group = parser.add_mutually_exclusive_group()
+    output_group.add_argument(
         "--json",
         action="store_true",
         help="Print machine-readable JSON.",
+    )
+    output_group.add_argument(
+        "--fix-plan",
+        action="store_true",
+        help="Print a Markdown checklist for missing maintenance basics.",
     )
     parser.add_argument(
         "--fail-under",
@@ -44,6 +50,8 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.json:
         print(_to_json(result))
+    elif args.fix_plan:
+        print(_to_fix_plan(result))
     else:
         print(_to_text(result))
 
@@ -84,5 +92,30 @@ def _to_text(result: AuditResult) -> str:
             lines.append(f"  - {check.recommendation}")
     else:
         lines.extend(["", "No missing maintenance basics found."])
+
+    return "\n".join(lines)
+
+
+def _to_fix_plan(result: AuditResult) -> str:
+    lines = [
+        f"# Maintenance Fix Plan: {result.path.name}",
+        "",
+        (
+            f"Current score: {result.score}/{result.max_score} "
+            f"({result.percentage}%) - Grade {result.grade}"
+        ),
+        "",
+    ]
+
+    if not result.failed_checks:
+        lines.append("No missing maintenance basics found.")
+        return "\n".join(lines)
+
+    lines.append("## Checklist")
+    lines.append("")
+    for check in result.failed_checks:
+        lines.append(f"- [ ] **{check.title}** ({check.weight} pts)")
+        lines.append(f"  - Finding: {check.detail}")
+        lines.append(f"  - Next: {check.recommendation}")
 
     return "\n".join(lines)

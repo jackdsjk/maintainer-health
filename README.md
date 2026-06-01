@@ -17,6 +17,12 @@ Machine-readable output:
 maintainer-health . --json
 ```
 
+Markdown fix plan:
+
+```bash
+maintainer-health . --fix-plan
+```
+
 CI gate example:
 
 ```bash
@@ -69,7 +75,6 @@ See [docs/roadmap.md](docs/roadmap.md) for planned maintenance work.
 Near-term focus:
 
 - Language-specific checks for Python, JavaScript, Rust, and Go.
-- `--fix-plan` output that creates a prioritized maintenance task list.
 - Markdown report output for CI comments and issue bodies.
 
 ## License
