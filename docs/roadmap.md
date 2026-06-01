@@ -13,10 +13,6 @@ Add focused checks for common package ecosystems:
 - Rust: crate metadata, MSRV note, cargo test availability.
 - Go: module metadata, test packages, supported Go version.
 
-### Fix plan output
-
-Add `--fix-plan` to emit a prioritized Markdown checklist for missing maintenance basics. The output should be useful as an issue body or local cleanup plan.
-
 ### Markdown report output
 
 Add `--format markdown` for CI summaries and pull request comments. It should include score, grade, failed checks, and top next steps.
