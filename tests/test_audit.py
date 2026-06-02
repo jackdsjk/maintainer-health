@@ -72,6 +72,26 @@ def test_audit_detects_javascript_project_metadata(tmp_path: Path) -> None:
     assert javascript_check.passed
 
 
+def test_audit_profile_limits_checks_to_real_maintenance_scenario(
+    tmp_path: Path,
+) -> None:
+    write(tmp_path / "SECURITY.md", "Report vulnerabilities privately.")
+
+    result = audit_repository(tmp_path, profile="security-baseline")
+
+    checked_keys = {check.key for check in result.checks}
+    assert result.profile == "security-baseline"
+    assert "security" in checked_keys
+    assert "readme" not in checked_keys
+    assert "contributing" not in checked_keys
+    assert "changelog" not in checked_keys
+
+
+def test_audit_rejects_unknown_profile(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="Unknown profile"):
+        audit_repository(tmp_path, profile="made-up")
+
+
 def test_audit_flags_incomplete_go_project(tmp_path: Path) -> None:
     write(tmp_path / "go.mod", "module example.com/demo\n\ngo 1.23\n")
 

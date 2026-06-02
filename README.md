@@ -35,6 +35,14 @@ CI gate example:
 maintainer-health . --fail-under 75
 ```
 
+Audit a specific maintenance scenario:
+
+```bash
+maintainer-health . --profile contributor-ready
+maintainer-health . --profile release-ready
+maintainer-health . --profile security-baseline
+```
+
 ## What It Checks
 
 | Check | Why it matters |
@@ -53,10 +61,23 @@ maintainer-health . --fail-under 75
 | Package metadata | Tooling and users need project identity and runtime support. |
 | Ecosystem metadata | Python, JavaScript, Rust, and Go projects need runtime-specific validation signals. |
 
+## Profiles
+
+Most repositories do not need the same checklist every day. Profiles let maintainers
+run the audit against the job they are actually doing.
+
+| Profile | Use it when |
+| --- | --- |
+| `all` | You want the full maintenance baseline. |
+| `contributor-ready` | You are preparing a repo for outside contributors. |
+| `release-ready` | You are checking whether a repo is ready to publish or tag. |
+| `security-baseline` | You want a small baseline for security reporting, CI, tests, and metadata. |
+
 ## Example
 
 ```text
 Repository: /path/to/project
+Profile: all
 Score: 78/100 (78%) - Grade B
 
 Checks:
@@ -81,9 +102,9 @@ See [docs/roadmap.md](docs/roadmap.md) for planned maintenance work.
 
 Near-term focus:
 
-- Optional GitHub enrichment for repository activity signals.
-- SARIF output for code scanning integrations.
-- Configurable check weights and disabled checks.
+- Prioritized fix plans that show the highest-leverage next work first.
+- Lightweight config for disabled checks and profile-specific thresholds.
+- SARIF output for CI and code scanning integrations.
 
 ## License
 

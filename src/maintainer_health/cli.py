@@ -7,7 +7,12 @@ from collections.abc import Sequence
 from dataclasses import asdict
 from pathlib import Path
 
-from maintainer_health.audit import AuditResult, audit_repository
+from maintainer_health.audit import (
+    PROFILE_CHECKS,
+    PROFILE_DESCRIPTIONS,
+    AuditResult,
+    audit_repository,
+)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -44,12 +49,30 @@ def main(argv: Sequence[str] | None = None) -> int:
         metavar="PERCENT",
         help="Exit with status 2 if the score percentage is below this threshold.",
     )
+    parser.add_argument(
+        "--profile",
+        choices=sorted(PROFILE_CHECKS),
+        default="all",
+        help=(
+            "Audit against a specific maintenance scenario. "
+            "Defaults to all checks."
+        ),
+    )
+    parser.add_argument(
+        "--list-profiles",
+        action="store_true",
+        help="List available maintenance profiles and exit.",
+    )
 
     args = parser.parse_args(argv)
 
+    if args.list_profiles:
+        print(_to_profile_list())
+        return 0
+
     try:
-        result = audit_repository(args.path)
-    except (FileNotFoundError, NotADirectoryError) as exc:
+        result = audit_repository(args.path, profile=args.profile)
+    except (FileNotFoundError, NotADirectoryError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
@@ -70,14 +93,24 @@ def main(argv: Sequence[str] | None = None) -> int:
 def _to_json(result: AuditResult) -> str:
     payload = asdict(result)
     payload["path"] = str(result.path)
+    payload["profile"] = result.profile
     payload["grade"] = result.grade
     payload["percentage"] = result.percentage
     return json.dumps(payload, indent=2, sort_keys=True)
 
 
+def _to_profile_list() -> str:
+    lines = ["Available profiles:"]
+    for profile in sorted(PROFILE_DESCRIPTIONS):
+        lines.append(f"  {profile}: {PROFILE_DESCRIPTIONS[profile]}")
+    return "\n".join(lines)
+
+
 def _to_text(result: AuditResult) -> str:
     lines = [
         f"Repository: {Path(result.path)}",
+        f"Profile: {result.profile}",
+        f"Profile goal: {PROFILE_DESCRIPTIONS[result.profile]}",
         (
             f"Score: {result.score}/{result.max_score} "
             f"({result.percentage}%) - Grade {result.grade}"
@@ -108,6 +141,9 @@ def _to_fix_plan(result: AuditResult) -> str:
     lines = [
         f"# Maintenance Fix Plan: {result.path.name}",
         "",
+        f"Profile: {result.profile}",
+        f"Profile goal: {PROFILE_DESCRIPTIONS[result.profile]}",
+        "",
         (
             f"Current score: {result.score}/{result.max_score} "
             f"({result.percentage}%) - Grade {result.grade}"
@@ -135,6 +171,8 @@ def _to_markdown(result: AuditResult) -> str:
         "",
         "| Metric | Value |",
         "| --- | --- |",
+        f"| Profile | {result.profile} |",
+        f"| Profile goal | {PROFILE_DESCRIPTIONS[result.profile]} |",
         f"| Score | {result.score}/{result.max_score} |",
         f"| Percentage | {result.percentage}% |",
         f"| Grade | {result.grade} |",

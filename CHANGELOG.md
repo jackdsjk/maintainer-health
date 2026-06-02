@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 - 2026-06-02
+
+- Added scenario-based audit profiles with `--profile`.
+- Added `--list-profiles` so users can discover available maintenance scenarios.
+- Added profile metadata to text, JSON, Markdown, and fix-plan outputs.
+- Reframed the roadmap around concrete maintainer jobs and product value.
+
 ## 0.2.0 - 2026-06-02
 
 - Added ecosystem detection for Python, JavaScript, Rust, and Go repositories.

@@ -3,6 +3,65 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+PROFILE_CHECKS = {
+    "all": (),
+    "contributor-ready": (
+        "readme",
+        "license",
+        "contributing",
+        "code_of_conduct",
+        "ci",
+        "tests",
+        "issue_templates",
+        "pull_request_template",
+        "package_metadata",
+        "python_metadata",
+        "javascript_metadata",
+        "rust_metadata",
+        "go_metadata",
+    ),
+    "release-ready": (
+        "readme",
+        "license",
+        "ci",
+        "tests",
+        "changelog",
+        "release_metadata",
+        "package_metadata",
+        "python_metadata",
+        "javascript_metadata",
+        "rust_metadata",
+        "go_metadata",
+    ),
+    "security-baseline": (
+        "license",
+        "security",
+        "ci",
+        "tests",
+        "package_metadata",
+        "python_metadata",
+        "javascript_metadata",
+        "rust_metadata",
+        "go_metadata",
+    ),
+}
+
+PROFILE_DESCRIPTIONS = {
+    "all": "Run the full maintenance baseline.",
+    "contributor-ready": (
+        "Check whether outside contributors can understand, run, report, "
+        "and submit changes."
+    ),
+    "release-ready": (
+        "Check whether the repository has the docs, automation, and metadata "
+        "expected before publishing."
+    ),
+    "security-baseline": (
+        "Check the smallest local baseline for security reporting, CI, tests, "
+        "and metadata."
+    ),
+}
+
 
 @dataclass(frozen=True)
 class CheckResult:
@@ -21,6 +80,7 @@ class AuditResult:
     """Complete repository audit result."""
 
     path: Path
+    profile: str
     score: int
     max_score: int
     checks: tuple[CheckResult, ...]
@@ -50,8 +110,12 @@ class AuditResult:
         return tuple(check for check in self.checks if not check.passed)
 
 
-def audit_repository(path: str | Path) -> AuditResult:
+def audit_repository(path: str | Path, profile: str = "all") -> AuditResult:
     """Audit a local repository path for open-source maintenance readiness."""
+
+    if profile not in PROFILE_CHECKS:
+        valid = ", ".join(sorted(PROFILE_CHECKS))
+        raise ValueError(f"Unknown profile: {profile}. Expected one of: {valid}")
 
     repo_path = Path(path).expanduser().resolve()
     if not repo_path.exists():
@@ -60,30 +124,46 @@ def audit_repository(path: str | Path) -> AuditResult:
         raise NotADirectoryError(f"Repository path is not a directory: {repo_path}")
 
     ecosystems = _detect_ecosystems(repo_path)
-    checks = (
-        _check_readme(repo_path),
-        _check_license(repo_path),
-        _check_contributing(repo_path),
-        _check_code_of_conduct(repo_path),
-        _check_security_policy(repo_path),
-        _check_ci(repo_path),
-        _check_tests(repo_path),
-        _check_issue_templates(repo_path),
-        _check_pull_request_template(repo_path),
-        _check_changelog(repo_path),
-        _check_release_metadata(repo_path),
-        _check_package_metadata(repo_path),
-        *_check_ecosystems(repo_path, ecosystems),
+    checks = _filter_checks(
+        (
+            _check_readme(repo_path),
+            _check_license(repo_path),
+            _check_contributing(repo_path),
+            _check_code_of_conduct(repo_path),
+            _check_security_policy(repo_path),
+            _check_ci(repo_path),
+            _check_tests(repo_path),
+            _check_issue_templates(repo_path),
+            _check_pull_request_template(repo_path),
+            _check_changelog(repo_path),
+            _check_release_metadata(repo_path),
+            _check_package_metadata(repo_path),
+            *_check_ecosystems(repo_path, ecosystems),
+        ),
+        profile,
     )
     score = sum(check.weight for check in checks if check.passed)
     max_score = sum(check.weight for check in checks)
     return AuditResult(
         path=repo_path,
+        profile=profile,
         score=score,
         max_score=max_score,
         checks=checks,
         ecosystems=ecosystems,
     )
+
+
+def _filter_checks(
+    checks: tuple[CheckResult, ...],
+    profile: str,
+) -> tuple[CheckResult, ...]:
+    profile_keys = PROFILE_CHECKS[profile]
+    if not profile_keys:
+        return checks
+
+    allowed = set(profile_keys)
+    return tuple(check for check in checks if check.key in allowed)
 
 
 def _detect_ecosystems(path: Path) -> tuple[str, ...]:

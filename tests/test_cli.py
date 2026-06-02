@@ -13,6 +13,7 @@ def test_cli_json_output(tmp_path: Path, capsys) -> None:
     payload = json.loads(captured.out)
     assert exit_code == 0
     assert payload["path"] == str(tmp_path.resolve())
+    assert payload["profile"] == "all"
     assert "checks" in payload
     assert "ecosystems" in payload
 
@@ -65,5 +66,28 @@ def test_cli_markdown_output_includes_score_and_checks(tmp_path: Path, capsys) -
     captured = capsys.readouterr()
     assert exit_code == 0
     assert "# Maintenance Health Report:" in captured.out
+    assert "| Profile | all |" in captured.out
     assert "| Score |" in captured.out
     assert "| FAIL | README |" in captured.out
+
+
+def test_cli_profile_changes_audit_scope(tmp_path: Path, capsys) -> None:
+    exit_code = main([str(tmp_path), "--profile", "release-ready", "--json"])
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    checked_keys = {check["key"] for check in payload["checks"]}
+    assert exit_code == 0
+    assert payload["profile"] == "release-ready"
+    assert "changelog" in checked_keys
+    assert "security" not in checked_keys
+
+
+def test_cli_lists_profiles(capsys) -> None:
+    exit_code = main(["--list-profiles"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Available profiles:" in captured.out
+    assert "contributor-ready:" in captured.out
+    assert "security-baseline:" in captured.out
