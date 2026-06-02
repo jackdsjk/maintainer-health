@@ -24,6 +24,7 @@ class AuditResult:
     score: int
     max_score: int
     checks: tuple[CheckResult, ...]
+    ecosystems: tuple[str, ...]
 
     @property
     def grade(self) -> str:
@@ -58,6 +59,7 @@ def audit_repository(path: str | Path) -> AuditResult:
     if not repo_path.is_dir():
         raise NotADirectoryError(f"Repository path is not a directory: {repo_path}")
 
+    ecosystems = _detect_ecosystems(repo_path)
     checks = (
         _check_readme(repo_path),
         _check_license(repo_path),
@@ -71,10 +73,158 @@ def audit_repository(path: str | Path) -> AuditResult:
         _check_changelog(repo_path),
         _check_release_metadata(repo_path),
         _check_package_metadata(repo_path),
+        *_check_ecosystems(repo_path, ecosystems),
     )
     score = sum(check.weight for check in checks if check.passed)
     max_score = sum(check.weight for check in checks)
-    return AuditResult(path=repo_path, score=score, max_score=max_score, checks=checks)
+    return AuditResult(
+        path=repo_path,
+        score=score,
+        max_score=max_score,
+        checks=checks,
+        ecosystems=ecosystems,
+    )
+
+
+def _detect_ecosystems(path: Path) -> tuple[str, ...]:
+    ecosystems = []
+    ecosystem_markers = (
+        ("python", ("pyproject.toml", "setup.py", "requirements.txt")),
+        ("javascript", ("package.json", "pnpm-lock.yaml", "yarn.lock")),
+        ("rust", ("Cargo.toml",)),
+        ("go", ("go.mod",)),
+    )
+    for ecosystem, markers in ecosystem_markers:
+        if any((path / marker).exists() for marker in markers):
+            ecosystems.append(ecosystem)
+    return tuple(ecosystems)
+
+
+def _check_ecosystems(
+    path: Path,
+    ecosystems: tuple[str, ...],
+) -> tuple[CheckResult, ...]:
+    checks = []
+    if "python" in ecosystems:
+        checks.append(_check_python_project(path))
+    if "javascript" in ecosystems:
+        checks.append(_check_javascript_project(path))
+    if "rust" in ecosystems:
+        checks.append(_check_rust_project(path))
+    if "go" in ecosystems:
+        checks.append(_check_go_project(path))
+    return tuple(checks)
+
+
+def _check_python_project(path: Path) -> CheckResult:
+    pyproject = path / "pyproject.toml"
+    if not pyproject.exists():
+        return _fail(
+            "python_metadata",
+            "Python metadata",
+            6,
+            "Detected Python files but no pyproject.toml.",
+            "Add pyproject.toml with project metadata and supported Python versions.",
+        )
+
+    text = _read_text(pyproject)
+    has_project = "[project]" in text
+    has_python = "requires-python" in text
+    has_tests = "pytest" in text or (path / "tests").exists()
+    if has_project and has_python and has_tests:
+        return _pass(
+            "python_metadata",
+            "Python metadata",
+            6,
+            "Found pyproject.toml with project metadata, runtime, and test signal.",
+        )
+    return _fail(
+        "python_metadata",
+        "Python metadata",
+        6,
+        "Python metadata is missing project, runtime, or test information.",
+        "Add [project], requires-python, and a documented test dependency or tests/.",
+    )
+
+
+def _check_javascript_project(path: Path) -> CheckResult:
+    package_json = path / "package.json"
+    if not package_json.exists():
+        return _fail(
+            "javascript_metadata",
+            "JavaScript metadata",
+            6,
+            "Detected JavaScript markers but no package.json.",
+            "Add package.json with scripts, license, and supported Node version.",
+        )
+
+    text = _read_text(package_json)
+    has_scripts = '"scripts"' in text
+    has_test = '"test"' in text
+    has_engines = '"engines"' in text
+    if has_scripts and has_test and has_engines:
+        return _pass(
+            "javascript_metadata",
+            "JavaScript metadata",
+            6,
+            "Found package.json with scripts, test command, and engines.",
+        )
+    return _fail(
+        "javascript_metadata",
+        "JavaScript metadata",
+        6,
+        "package.json is missing scripts, test command, or engines.",
+        (
+            "Add scripts.test and engines.node so contributors know how to "
+            "validate changes."
+        ),
+    )
+
+
+def _check_rust_project(path: Path) -> CheckResult:
+    cargo_toml = path / "Cargo.toml"
+    text = _read_text(cargo_toml)
+    has_package = "[package]" in text
+    has_edition = "edition" in text
+    has_ci_or_tests = (
+        (path / ".github" / "workflows").exists() or (path / "tests").exists()
+    )
+    if has_package and has_edition and has_ci_or_tests:
+        return _pass(
+            "rust_metadata",
+            "Rust metadata",
+            6,
+            "Found Cargo.toml with package metadata, edition, and validation signal.",
+        )
+    return _fail(
+        "rust_metadata",
+        "Rust metadata",
+        6,
+        "Cargo.toml is missing package metadata, edition, or validation signal.",
+        "Add package metadata, edition, and CI or tests for cargo test.",
+    )
+
+
+def _check_go_project(path: Path) -> CheckResult:
+    go_mod = path / "go.mod"
+    text = _read_text(go_mod)
+    has_module = text.startswith("module ") or "\nmodule " in text
+    has_go_version = "\ngo " in text
+    has_tests = any(path.rglob("*_test.go"))
+    if has_module and has_go_version and has_tests:
+        return _pass(
+            "go_metadata",
+            "Go metadata",
+            6,
+            "Found go.mod with module, Go version, and tests.",
+        )
+    return _fail(
+        "go_metadata",
+        "Go metadata",
+        6,
+        "Go project is missing module metadata, Go version, or tests.",
+        "Add module metadata, a Go version, and at least one *_test.go file.",
+    )
 
 
 def _check_readme(path: Path) -> CheckResult:

@@ -29,12 +29,16 @@ def test_audit_scores_complete_repository(tmp_path: Path) -> None:
     write(tmp_path / ".github" / "PULL_REQUEST_TEMPLATE.md", "Summary\nTests")
     write(tmp_path / "CHANGELOG.md", "# Changelog")
     write(tmp_path / ".github" / "release.yml", "changelog:")
-    write(tmp_path / "pyproject.toml", "[project]\nname='demo'")
+    write(
+        tmp_path / "pyproject.toml",
+        "[project]\nname='demo'\nrequires-python='>=3.10'\n",
+    )
 
     result = audit_repository(tmp_path)
 
     assert result.percentage == 100
     assert result.grade == "A"
+    assert result.ecosystems == ("python",)
     assert not result.failed_checks
 
 
@@ -51,3 +55,29 @@ def test_audit_reports_missing_maintenance_files(tmp_path: Path) -> None:
 def test_audit_rejects_missing_path(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError):
         audit_repository(tmp_path / "missing")
+
+
+def test_audit_detects_javascript_project_metadata(tmp_path: Path) -> None:
+    write(
+        tmp_path / "package.json",
+        '{"scripts":{"test":"node --test"},"engines":{"node":">=20"}}',
+    )
+
+    result = audit_repository(tmp_path)
+
+    assert "javascript" in result.ecosystems
+    javascript_check = next(
+        check for check in result.checks if check.key == "javascript_metadata"
+    )
+    assert javascript_check.passed
+
+
+def test_audit_flags_incomplete_go_project(tmp_path: Path) -> None:
+    write(tmp_path / "go.mod", "module example.com/demo\n\ngo 1.23\n")
+
+    result = audit_repository(tmp_path)
+
+    assert "go" in result.ecosystems
+    go_check = next(check for check in result.checks if check.key == "go_metadata")
+    assert not go_check.passed
+    assert "*_test.go" in go_check.recommendation

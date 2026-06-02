@@ -23,6 +23,12 @@ Markdown fix plan:
 maintainer-health . --fix-plan
 ```
 
+Markdown report:
+
+```bash
+maintainer-health . --format markdown
+```
+
 CI gate example:
 
 ```bash
@@ -45,6 +51,7 @@ maintainer-health . --fail-under 75
 | Changelog | Users need to understand release history. |
 | Release metadata | Maintainers need a repeatable release process. |
 | Package metadata | Tooling and users need project identity and runtime support. |
+| Ecosystem metadata | Python, JavaScript, Rust, and Go projects need runtime-specific validation signals. |
 
 ## Example
 
@@ -74,8 +81,9 @@ See [docs/roadmap.md](docs/roadmap.md) for planned maintenance work.
 
 Near-term focus:
 
-- Language-specific checks for Python, JavaScript, Rust, and Go.
-- Markdown report output for CI comments and issue bodies.
+- Optional GitHub enrichment for repository activity signals.
+- SARIF output for code scanning integrations.
+- Configurable check weights and disabled checks.
 
 ## License
 

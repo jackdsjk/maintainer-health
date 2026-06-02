@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0 - 2026-06-02
+
+- Added ecosystem detection for Python, JavaScript, Rust, and Go repositories.
+- Added ecosystem-specific metadata checks.
+- Added Markdown report output with `--format markdown`.
+- Updated package version metadata to match the release.
+
 ## 0.1.1 - 2026-06-01
 
 - Added `--fix-plan` Markdown checklist output for missing maintenance basics.
