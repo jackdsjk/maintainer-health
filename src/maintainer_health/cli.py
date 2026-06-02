@@ -32,6 +32,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="Print a Markdown checklist for missing maintenance basics.",
     )
+    output_group.add_argument(
+        "--format",
+        choices=["markdown"],
+        help="Print a report in the selected format.",
+    )
     parser.add_argument(
         "--fail-under",
         type=int,
@@ -52,6 +57,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(_to_json(result))
     elif args.fix_plan:
         print(_to_fix_plan(result))
+    elif args.format == "markdown":
+        print(_to_markdown(result))
     else:
         print(_to_text(result))
 
@@ -75,6 +82,7 @@ def _to_text(result: AuditResult) -> str:
             f"Score: {result.score}/{result.max_score} "
             f"({result.percentage}%) - Grade {result.grade}"
         ),
+        f"Ecosystems: {_format_ecosystems(result)}",
         "",
         "Checks:",
     ]
@@ -119,3 +127,40 @@ def _to_fix_plan(result: AuditResult) -> str:
         lines.append(f"  - Next: {check.recommendation}")
 
     return "\n".join(lines)
+
+
+def _to_markdown(result: AuditResult) -> str:
+    lines = [
+        f"# Maintenance Health Report: {result.path.name}",
+        "",
+        "| Metric | Value |",
+        "| --- | --- |",
+        f"| Score | {result.score}/{result.max_score} |",
+        f"| Percentage | {result.percentage}% |",
+        f"| Grade | {result.grade} |",
+        f"| Ecosystems | {_format_ecosystems(result)} |",
+        "",
+        "## Checks",
+        "",
+        "| Status | Check | Weight | Finding |",
+        "| --- | --- | ---: | --- |",
+    ]
+
+    for check in result.checks:
+        status = "PASS" if check.passed else "FAIL"
+        lines.append(
+            f"| {status} | {check.title} | {check.weight} | {check.detail} |"
+        )
+
+    if result.failed_checks:
+        lines.extend(["", "## Recommended Next Steps", ""])
+        for check in result.failed_checks[:5]:
+            lines.append(f"- **{check.title}:** {check.recommendation}")
+
+    return "\n".join(lines)
+
+
+def _format_ecosystems(result: AuditResult) -> str:
+    if not result.ecosystems:
+        return "none detected"
+    return ", ".join(result.ecosystems)

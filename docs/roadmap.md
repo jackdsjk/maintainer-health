@@ -4,21 +4,6 @@ This roadmap keeps near-term maintenance work concrete and reviewable. The proje
 
 ## Near Term
 
-### Language-specific maintenance checks
-
-Add focused checks for common package ecosystems:
-
-- Python: build backend, test command, supported Python versions, package classifiers.
-- JavaScript: package scripts, lockfile presence, supported Node version, test command.
-- Rust: crate metadata, MSRV note, cargo test availability.
-- Go: module metadata, test packages, supported Go version.
-
-### Markdown report output
-
-Add `--format markdown` for CI summaries and pull request comments. It should include score, grade, failed checks, and top next steps.
-
-## Later
-
 ### Optional GitHub enrichment
 
 Add opt-in GitHub API checks for repository activity signals such as releases, stale issues, stale pull requests, and response time. This must remain optional and must not require credentials for local audits.
@@ -30,3 +15,8 @@ Add SARIF output so repository maintenance gaps can appear in GitHub code scanni
 ### Check configuration
 
 Add a small config file for teams that want to disable checks, change weights, or raise/lower CI thresholds.
+
+## Completed
+
+- `2026-06-01`: Added `--fix-plan` Markdown checklist output.
+- `2026-06-02`: Added ecosystem detection and Markdown report output.
