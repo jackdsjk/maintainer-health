@@ -30,6 +30,11 @@ def test_cli_fix_plan_outputs_markdown_checklist(tmp_path: Path, capsys) -> None
     captured = capsys.readouterr()
     assert exit_code == 0
     assert "# Maintenance Fix Plan:" in captured.out
+    assert "## Top 3 Fixes" in captured.out
+    assert "1. **README**" in captured.out
+    assert "Category: docs" in captured.out
+    assert "Effort: medium" in captured.out
+    assert "## Full Checklist" in captured.out
     assert "- [ ] **README**" in captured.out
     assert "Add a README with purpose" in captured.out
 
@@ -68,7 +73,11 @@ def test_cli_markdown_output_includes_score_and_checks(tmp_path: Path, capsys) -
     assert "# Maintenance Health Report:" in captured.out
     assert "| Profile | all |" in captured.out
     assert "| Score |" in captured.out
-    assert "| FAIL | README |" in captured.out
+    assert (
+        "| Status | Check | Category | Priority | Effort | Weight | Finding |"
+        in captured.out
+    )
+    assert "| FAIL | README | docs |" in captured.out
 
 
 def test_cli_profile_changes_audit_scope(tmp_path: Path, capsys) -> None:

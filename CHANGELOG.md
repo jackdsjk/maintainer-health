@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0 - 2026-06-03
+
+- Added check category, priority, and effort metadata.
+- Added prioritized failed-check ordering for action-oriented recommendations.
+- Upgraded `--fix-plan` with top three fixes and category-grouped backlog.
+- Expanded Markdown reports with category, priority, and effort columns.
+
 ## 0.3.0 - 2026-06-02
 
 - Added scenario-based audit profiles with `--profile`.

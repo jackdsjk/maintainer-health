@@ -63,13 +63,19 @@ Next:
 
 ## Phase 2: Prioritized Fix Plans
 
+Status: in progress.
+
 Goal: turn the audit from "what failed" into "what should I fix first?"
 
-Planned work:
+Delivered:
 
 - Add severity or priority metadata to checks.
 - Group recommendations by maintainer job: docs, trust, automation, release, ecosystem.
 - Make `--fix-plan` output the top three highest-leverage fixes first.
+- Expand Markdown reports with category, priority, and effort metadata.
+
+Next:
+
 - Include small examples for common missing files such as `SECURITY.md` and PR templates.
 
 Useful outcome: a maintainer can run one command and know the next hour of work.
@@ -140,3 +146,4 @@ one-time cleanup script.
 
 - `2026-06-01`: Added `--fix-plan` Markdown checklist output.
 - `2026-06-02`: Added ecosystem detection and Markdown report output.
+- `2026-06-03`: Added prioritized fix plans with category, priority, and effort metadata.

@@ -49,7 +49,16 @@ def test_audit_reports_missing_maintenance_files(tmp_path: Path) -> None:
     assert "readme" in failed_keys
     assert "license" in failed_keys
     assert "ci" in failed_keys
+    assert all(check.category for check in result.checks)
+    assert all(check.effort for check in result.checks)
     assert result.grade == "F"
+
+
+def test_audit_prioritizes_failed_checks_by_impact(tmp_path: Path) -> None:
+    result = audit_repository(tmp_path)
+
+    prioritized_keys = [check.key for check in result.prioritized_failed_checks]
+    assert prioritized_keys[:3] == ["readme", "license", "ci"]
 
 
 def test_audit_rejects_missing_path(tmp_path: Path) -> None:

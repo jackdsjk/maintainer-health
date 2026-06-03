@@ -23,6 +23,9 @@ Markdown fix plan:
 maintainer-health . --fix-plan
 ```
 
+The fix plan is prioritized by maintainer impact. It shows the top three fixes
+first, then groups the full checklist by maintenance area.
+
 Markdown report:
 
 ```bash
@@ -60,6 +63,9 @@ maintainer-health . --profile security-baseline
 | Release metadata | Maintainers need a repeatable release process. |
 | Package metadata | Tooling and users need project identity and runtime support. |
 | Ecosystem metadata | Python, JavaScript, Rust, and Go projects need runtime-specific validation signals. |
+
+Each check also includes a category, priority, and estimated effort so maintainers
+can decide what to fix first.
 
 ## Profiles
 

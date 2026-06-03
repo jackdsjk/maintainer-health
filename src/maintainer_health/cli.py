@@ -129,8 +129,11 @@ def _to_text(result: AuditResult) -> str:
 
     if result.failed_checks:
         lines.extend(["", "Top next steps:"])
-        for check in result.failed_checks[:5]:
-            lines.append(f"  - {check.recommendation}")
+        for check in result.prioritized_failed_checks[:5]:
+            lines.append(
+                f"  - P{check.priority} {check.title} "
+                f"[{check.category}, {check.effort}]: {check.recommendation}"
+            )
     else:
         lines.extend(["", "No missing maintenance basics found."])
 
@@ -155,12 +158,33 @@ def _to_fix_plan(result: AuditResult) -> str:
         lines.append("No missing maintenance basics found.")
         return "\n".join(lines)
 
-    lines.append("## Checklist")
+    prioritized = result.prioritized_failed_checks
+
+    lines.append("## Top 3 Fixes")
     lines.append("")
-    for check in result.failed_checks:
+    for index, check in enumerate(prioritized[:3], start=1):
+        lines.append(f"{index}. **{check.title}**")
+        lines.append(f"   - Category: {check.category}")
+        lines.append(f"   - Priority: P{check.priority}")
+        lines.append(f"   - Effort: {check.effort}")
+        lines.append(f"   - Finding: {check.detail}")
+        lines.append(f"   - Next: {check.recommendation}")
+    lines.append("")
+
+    lines.append("## Full Checklist")
+    lines.append("")
+    current_category = ""
+    for check in prioritized:
+        if check.category != current_category:
+            current_category = check.category
+            lines.append(f"### {current_category.title()}")
+            lines.append("")
         lines.append(f"- [ ] **{check.title}** ({check.weight} pts)")
+        lines.append(f"  - Priority: P{check.priority}")
+        lines.append(f"  - Effort: {check.effort}")
         lines.append(f"  - Finding: {check.detail}")
         lines.append(f"  - Next: {check.recommendation}")
+        lines.append("")
 
     return "\n".join(lines)
 
@@ -180,20 +204,25 @@ def _to_markdown(result: AuditResult) -> str:
         "",
         "## Checks",
         "",
-        "| Status | Check | Weight | Finding |",
-        "| --- | --- | ---: | --- |",
+        "| Status | Check | Category | Priority | Effort | Weight | Finding |",
+        "| --- | --- | --- | ---: | --- | ---: | --- |",
     ]
 
     for check in result.checks:
         status = "PASS" if check.passed else "FAIL"
         lines.append(
-            f"| {status} | {check.title} | {check.weight} | {check.detail} |"
+            f"| {status} | {check.title} | {check.category} | "
+            f"{check.priority} | {check.effort} | {check.weight} | "
+            f"{check.detail} |"
         )
 
     if result.failed_checks:
         lines.extend(["", "## Recommended Next Steps", ""])
-        for check in result.failed_checks[:5]:
-            lines.append(f"- **{check.title}:** {check.recommendation}")
+        for check in result.prioritized_failed_checks[:5]:
+            lines.append(
+                f"- **P{check.priority} {check.title}** "
+                f"({check.category}, {check.effort}): {check.recommendation}"
+            )
 
     return "\n".join(lines)
 

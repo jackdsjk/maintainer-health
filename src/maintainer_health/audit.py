@@ -62,6 +62,49 @@ PROFILE_DESCRIPTIONS = {
     ),
 }
 
+CHECK_METADATA = {
+    "readme": ("docs", 10, "medium"),
+    "license": ("trust", 10, "small"),
+    "contributing": ("contributor", 8, "medium"),
+    "code_of_conduct": ("community", 4, "small"),
+    "security": ("security", 9, "small"),
+    "ci": ("automation", 10, "large"),
+    "tests": ("automation", 9, "large"),
+    "issue_templates": ("triage", 5, "small"),
+    "pull_request_template": ("review", 5, "small"),
+    "changelog": ("release", 7, "small"),
+    "release_metadata": ("release", 6, "medium"),
+    "package_metadata": ("metadata", 9, "medium"),
+    "python_metadata": ("ecosystem", 7, "small"),
+    "javascript_metadata": ("ecosystem", 7, "small"),
+    "rust_metadata": ("ecosystem", 7, "small"),
+    "go_metadata": ("ecosystem", 7, "small"),
+}
+
+CHECK_PRIORITY_ORDER = {
+    key: index
+    for index, key in enumerate(
+        (
+            "readme",
+            "license",
+            "ci",
+            "tests",
+            "security",
+            "package_metadata",
+            "contributing",
+            "python_metadata",
+            "javascript_metadata",
+            "rust_metadata",
+            "go_metadata",
+            "changelog",
+            "release_metadata",
+            "pull_request_template",
+            "issue_templates",
+            "code_of_conduct",
+        )
+    )
+}
+
 
 @dataclass(frozen=True)
 class CheckResult:
@@ -73,6 +116,9 @@ class CheckResult:
     weight: int
     detail: str
     recommendation: str
+    category: str
+    priority: int
+    effort: str
 
 
 @dataclass(frozen=True)
@@ -108,6 +154,20 @@ class AuditResult:
     @property
     def failed_checks(self) -> tuple[CheckResult, ...]:
         return tuple(check for check in self.checks if not check.passed)
+
+    @property
+    def prioritized_failed_checks(self) -> tuple[CheckResult, ...]:
+        return tuple(
+            sorted(
+                self.failed_checks,
+                key=lambda check: (
+                    -check.priority,
+                    CHECK_PRIORITY_ORDER.get(check.key, 999),
+                    -check.weight,
+                    check.title,
+                ),
+            )
+        )
 
 
 def audit_repository(path: str | Path, profile: str = "all") -> AuditResult:
@@ -585,6 +645,7 @@ def _read_text(path: Path) -> str:
 
 
 def _pass(key: str, title: str, weight: int, detail: str) -> CheckResult:
+    category, priority, effort = _metadata_for(key)
     return CheckResult(
         key=key,
         title=title,
@@ -592,6 +653,9 @@ def _pass(key: str, title: str, weight: int, detail: str) -> CheckResult:
         weight=weight,
         detail=detail,
         recommendation="No action needed.",
+        category=category,
+        priority=priority,
+        effort=effort,
     )
 
 
@@ -602,6 +666,7 @@ def _fail(
     detail: str,
     recommendation: str,
 ) -> CheckResult:
+    category, priority, effort = _metadata_for(key)
     return CheckResult(
         key=key,
         title=title,
@@ -609,4 +674,11 @@ def _fail(
         weight=weight,
         detail=detail,
         recommendation=recommendation,
+        category=category,
+        priority=priority,
+        effort=effort,
     )
+
+
+def _metadata_for(key: str) -> tuple[str, int, str]:
+    return CHECK_METADATA.get(key, ("general", 1, "medium"))
